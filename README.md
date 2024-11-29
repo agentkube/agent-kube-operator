@@ -1,6 +1,38 @@
 # Agent-kube-operator
-// TODO(user): Add simple overview of use/purpose
 
+
+
+## Architecture
+
+```mermaid
+graph TD
+    A[Kubernetes Cluster] -->|Read-only RBAC| B[Core Engine]
+    B --> C[Investigation Module]
+    B --> D[Response Protocol]
+    B --> E[Chat Interface]
+    
+    C --> F[Report Generator]
+    D --> F
+    E --> F
+    
+    F -->|Generate Report| G[DocuSign Integration]
+    G -->|Send for Signature| H[Stakeholders]
+    
+    I[Alert System] -->|Trigger| B
+    
+    subgraph "Core Features"
+        B
+        C
+        D
+        E
+    end
+    
+    subgraph "Documentation Flow"
+        F
+        G
+        H
+    end
+```
 ## Description
 // TODO(user): An in-depth paragraph about your project and overview of use
 
