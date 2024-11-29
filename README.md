@@ -1,7 +1,5 @@
 # Agent-kube-operator
 
-
-
 ## Architecture
 
 ```mermaid
