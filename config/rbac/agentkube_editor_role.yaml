@@ -1,0 +1,31 @@
+# permissions for end users to edit agentkubes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: agentkube-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: agent-kube-operator
+    app.kubernetes.io/part-of: agent-kube-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: agentkube-editor-role
+rules:
+- apiGroups:
+  - core.agentkube.com
+  resources:
+  - agentkubes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - core.agentkube.com
+  resources:
+  - agentkubes/status
+  verbs:
+  - get
