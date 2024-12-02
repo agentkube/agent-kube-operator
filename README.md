@@ -32,7 +32,94 @@ graph TD
     end
 ```
 ## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+
+The Agent-kube-operator is a Kubernetes operator that provides a set of features to automate the investigation and monitor cluster.
+
+
+## Agentkube: Custom Resources
+
+The Agent-kube-operator provides the following custom resources:
+
+- `ClusterMonitor` : Defines how to monitor and collect data from Kubernetes clusters.
+    - Defines which cluster to monitor
+    - Specifies the kubeconfig context to use
+    - Resource Monitoring: Configures which K8s resources to watch (pods, nodes, etc.)
+        - Configures which Kubernetes resources to monitor
+        - Allows selective monitoring of specific resource types
+        - Extracted from (Prometheus, metric-server, etc.)
+    - Metrics Collection: Defines which metrics to gather (CPU, memory, etc.)
+    - Log Collection: Specifies log gathering settings and namespace filters (loki)
+- `ResponseProtocol`: Defines automated response workflows for specific incidents
+    - Trigger Conditions: What activates this protocol (e.g., pod crashes, memory issues)
+    - Investigation Steps: Sequence of actions to take
+    - Data Collection: What information to gather
+    - Analysis Rules: How to process collected data
+    - Action Templates: Pre-defined responses to common issues
+    - Approval Requirements: Whether human approval is needed for actions
+- `Investigation`: Manages active and historical incident investigations
+    - Incident Details: What triggered the investigation
+    - Current Status: Progress and state of investigation
+    - Collected Evidence: Logs, metrics, and other data gathered
+    - Analysis Results: AI-generated insights and conclusions
+    - Action History: What steps have been taken
+    - Recommendations: Suggested next steps for resolution
+
+
+```mermaid
+graph TD
+    %% Kubernetes Clusters and Operator
+    KC[Kubernetes Clusters] -->|Read-only RBAC| AKO[Agent-Kube-Operator]
+    AKO -->|Manages| CRD1[ClusterMonitor CRD]
+    AKO -->|Manages| CRD2[ResponseProtocol CRD]
+    AKO -->|Manages| CRD3[Investigation CRD]
+
+    %% Monitoring and Alert Flow
+    KC -->|Events & Metrics| MON[Monitoring System]
+    MON -->|Triggers| ALERT[Alert Manager]
+    ALERT -->|Initiates| AKS[Agentkube Service]
+
+    %% Agentkube Service Components
+    AKS -->|Uses| LLM[LLM Engine]
+    AKS -->|Executes| PROTO[Response Protocols]
+    AKS -->|Conducts| INV[Investigation Module]
+    
+    %% Dashboard and UI
+    DASH[Dashboard] -->|Displays| MON
+    DASH -->|Manages| PROTO
+    DASH -->|Shows| INV
+    DASH -->|Controls| CRD1
+    DASH -->|Controls| CRD2
+    DASH -->|Controls| CRD3
+
+    %% Response Protocol Flow
+    PROTO -->|Generates| REP[Incident Reports]
+    INV -->|Contributes to| REP
+
+    %% Subgraphs for Component Groups
+    subgraph "Kubernetes Layer"
+        KC
+        AKO
+        CRD1
+        CRD2
+        CRD3
+    end
+
+    subgraph "Core Services"
+        AKS
+        LLM
+        PROTO
+        INV
+    end
+
+    subgraph "Frontend Layer"
+        DASH
+    end
+
+    subgraph "Monitoring Layer"
+        MON
+        ALERT
+    end
+```
 
 ## Getting Started
 
