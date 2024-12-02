@@ -23,17 +23,17 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// AgentKubeSpec defines the desired state of AgentKube
-type AgentKubeSpec struct {
+// ResponseProtocolSpec defines the desired state of ResponseProtocol
+type ResponseProtocolSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of AgentKube. Edit agentkube_types.go to remove/update
+	// Foo is an example field of ResponseProtocol. Edit responseprotocol_types.go to remove/update
 	Foo string `json:"foo,omitempty"`
 }
 
-// AgentKubeStatus defines the observed state of AgentKube
-type AgentKubeStatus struct {
+// ResponseProtocolStatus defines the observed state of ResponseProtocol
+type ResponseProtocolStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -41,24 +41,24 @@ type AgentKubeStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// AgentKube is the Schema for the agentkubes API
-type AgentKube struct {
+// ResponseProtocol is the Schema for the responseprotocols API
+type ResponseProtocol struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AgentKubeSpec   `json:"spec,omitempty"`
-	Status AgentKubeStatus `json:"status,omitempty"`
+	Spec   ResponseProtocolSpec   `json:"spec,omitempty"`
+	Status ResponseProtocolStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// AgentKubeList contains a list of AgentKube
-type AgentKubeList struct {
+// ResponseProtocolList contains a list of ResponseProtocol
+type ResponseProtocolList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AgentKube `json:"items"`
+	Items           []ResponseProtocol `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&AgentKube{}, &AgentKubeList{})
+	SchemeBuilder.Register(&ResponseProtocol{}, &ResponseProtocolList{})
 }

@@ -122,11 +122,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.AgentKubeReconciler{
+	if err = (&controller.ClusterMonitorReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AgentKube")
+		setupLog.Error(err, "unable to create controller", "controller", "ClusterMonitor")
+		os.Exit(1)
+	}
+	if err = (&controller.ResponseProtocolReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ResponseProtocol")
+		os.Exit(1)
+	}
+	if err = (&controller.InvestigationReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Investigation")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

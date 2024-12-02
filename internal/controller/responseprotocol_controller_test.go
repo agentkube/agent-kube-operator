@@ -30,7 +30,7 @@ import (
 	corev1alpha1 "agentkube.com/agent-kube-operator/api/v1alpha1"
 )
 
-var _ = Describe("AgentKube Controller", func() {
+var _ = Describe("ResponseProtocol Controller", func() {
 	Context("When reconciling a resource", func() {
 		const resourceName = "test-resource"
 
@@ -40,13 +40,13 @@ var _ = Describe("AgentKube Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		agentkube := &corev1alpha1.AgentKube{}
+		responseprotocol := &corev1alpha1.ResponseProtocol{}
 
 		BeforeEach(func() {
-			By("creating the custom resource for the Kind AgentKube")
-			err := k8sClient.Get(ctx, typeNamespacedName, agentkube)
+			By("creating the custom resource for the Kind ResponseProtocol")
+			err := k8sClient.Get(ctx, typeNamespacedName, responseprotocol)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &corev1alpha1.AgentKube{
+				resource := &corev1alpha1.ResponseProtocol{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -59,16 +59,16 @@ var _ = Describe("AgentKube Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &corev1alpha1.AgentKube{}
+			resource := &corev1alpha1.ResponseProtocol{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance AgentKube")
+			By("Cleanup the specific resource instance ResponseProtocol")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
-			controllerReconciler := &AgentKubeReconciler{
+			controllerReconciler := &ResponseProtocolReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 			}

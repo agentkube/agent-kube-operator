@@ -1,4 +1,6 @@
 ## Append samples of your project ##
 resources:
-- core_v1alpha1_agentkube.yaml
+- core_v1alpha1_clustermonitor.yaml
+- core_v1alpha1_responseprotocol.yaml
+- core_v1alpha1_investigation.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

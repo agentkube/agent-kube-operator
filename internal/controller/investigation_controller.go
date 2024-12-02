@@ -27,26 +27,26 @@ import (
 	corev1alpha1 "agentkube.com/agent-kube-operator/api/v1alpha1"
 )
 
-// AgentKubeReconciler reconciles a AgentKube object
-type AgentKubeReconciler struct {
+// InvestigationReconciler reconciles a Investigation object
+type InvestigationReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=core.agentkube.com,resources=agentkubes,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core.agentkube.com,resources=agentkubes/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=core.agentkube.com,resources=agentkubes/finalizers,verbs=update
+//+kubebuilder:rbac:groups=core.agentkube.com,resources=investigations,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core.agentkube.com,resources=investigations/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=core.agentkube.com,resources=investigations/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the AgentKube object against the actual cluster state, and then
+// the Investigation object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.0/pkg/reconcile
-func (r *AgentKubeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *InvestigationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
@@ -55,8 +55,8 @@ func (r *AgentKubeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *AgentKubeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *InvestigationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1alpha1.AgentKube{}).
+		For(&corev1alpha1.Investigation{}).
 		Complete(r)
 }

@@ -14,7 +14,25 @@ resources:
   controller: true
   domain: agentkube.com
   group: core
-  kind: AgentKube
+  kind: ClusterMonitor
+  path: agentkube.com/agent-kube-operator/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: agentkube.com
+  group: core
+  kind: ResponseProtocol
+  path: agentkube.com/agent-kube-operator/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: agentkube.com
+  group: core
+  kind: Investigation
   path: agentkube.com/agent-kube-operator/api/v1alpha1
   version: v1alpha1
 version: "3"
