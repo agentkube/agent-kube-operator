@@ -108,22 +108,7 @@ func (r *AgentDeploymentController) Reconcile(ctx context.Context, req ctrl.Requ
 						{
 							Name: "agent",
 							// Image: "agentkube-controller:latest", // You might want to make this configurable
-							Image: "busybox:latest", // You might want to make this configurable
-
-							Env: []corev1.EnvVar{
-								{
-									Name:  "CLUSTER_NAME",
-									Value: "my-cluster", // Make configurable
-								},
-								{
-									Name: "NODE_NAME",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "spec.nodeName",
-										},
-									},
-								},
-							},
+							Image:     "nginx:latest", // You might want to make this configurable
 							Resources: corev1.ResourceRequirements{
 								// Add resource limits/requests as needed
 							},
