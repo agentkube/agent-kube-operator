@@ -26,6 +26,10 @@ import (
 	"agentkube.com/agent-kube-operator/controllers"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	handler "agentkube.com/agent-kube-operator/internal/handler"
+
+	mediator "agentkube.com/agent-kube-operator/internal/mediator"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -44,8 +48,6 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	//+kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -102,24 +104,27 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "9f5e40df.agentkube.com",
-		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
-		// when the Manager ends. This requires the binary to immediately end when the
-		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
-		// speeds up voluntary leader transitions as the new leader don't have to wait
-		// LeaseDuration time first.
-		//
-		// In the default scaffold provided, the program ends immediately after
-		// the manager stops, so would be fine to enable this option. However,
-		// if you are doing or is intended to do any operation such as perform cleanups
-		// after the manager stops then its usage might be unsafe.
-		// LeaderElectionReleaseOnCancel: true,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	//+kubebuilder:scaffold:builder
+	// Register cluster with Agentkube
+	if err := mediator.RegisterCluster(); err != nil {
+		setupLog.Error(err, "failed to register cluster")
+		os.Exit(1)
+	}
+
+	h := handler.NewHandler()
+	if err := h.StartServer(":8082"); err != nil {
+		setupLog.Error(err, "unable to start HTTP server")
+		os.Exit(1)
+	}
+
+	// Initialize the API controller (Both are below are same NEED To change )
+	// _ = rest.NewController(mgr.GetClient(), mgr.GetScheme())
+
 	if err = (&controllers.AgentDeploymentController{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
