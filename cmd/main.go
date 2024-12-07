@@ -26,9 +26,8 @@ import (
 	"agentkube.com/agent-kube-operator/controllers"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	handler "agentkube.com/agent-kube-operator/internal/handler"
-
 	mediator "agentkube.com/agent-kube-operator/internal/mediator"
+	routes "agentkube.com/agent-kube-operator/internal/routes"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -116,8 +115,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	h := handler.NewHandler()
-	if err := h.StartServer(":8082"); err != nil {
+	router := routes.NewRouter()
+	if err := router.StartServer(":8082"); err != nil {
 		setupLog.Error(err, "unable to start HTTP server")
 		os.Exit(1)
 	}
