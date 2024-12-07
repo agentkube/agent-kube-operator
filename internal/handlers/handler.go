@@ -3,13 +3,16 @@ package handlers
 import (
 	"net/http"
 
+	kubectl "agentkube.com/agent-kube-operator/internal/controllers/kubectl"
 	"agentkube.com/agent-kube-operator/utils"
 	"github.com/gin-gonic/gin"
 )
 
 // var log = ctrl.Log.WithName("handlers")
 
-type Handler struct{}
+type Handler struct {
+	kubectlController *kubectl.Controller
+}
 
 func NewHandler() *Handler {
 	return &Handler{}
@@ -82,10 +85,54 @@ func (h *Handler) GetClusterInfo(c *gin.Context) {
 
 func (h *Handler) GetClusterMetrics(c *gin.Context) {
 	// TODO: Implement cluster metrics retrieval
+	// Get total namespaces
+	// Get total Deployments
+	// Get total replicaset
+	// Get total statefulset
+	// Get total pods
+	// Get total nodes
+	// Get total Jobs (Running/Completed)
+	// Get total CronJobs
+	// Get total daemonsets
+
+	// Network
+	// Get total services
+	// Get total endpoing
+	// Get total Ingress
+
+	// Volumes
+	// Get total persistent volume
+	// Get total pvc
+	// Get total storage classes
+
 	c.JSON(http.StatusOK, gin.H{
 		"metrics": map[string]interface{}{
 			"cpu_usage":    "0.5",
 			"memory_usage": "1.2GB",
 		},
 	})
+}
+
+func (h *Handler) ExecuteKubectl(c *gin.Context) {
+	var request struct {
+		Args []string `json:"args"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	args := request.Args
+	result, err := h.kubectlController.ExecuteCommand(args...)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }

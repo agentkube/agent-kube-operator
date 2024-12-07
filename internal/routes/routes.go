@@ -35,6 +35,8 @@ func (r *Router) setupRoutes() {
 	r.router.GET("/health", r.handler.HealthCheck)
 	r.router.GET("/ready", r.handler.ReadyCheck)
 
+	// Requires a  middleware to verify if any write
+
 	// API v1 routes
 	v1 := r.router.Group("/api/v1")
 	{
@@ -55,6 +57,8 @@ func (r *Router) setupRoutes() {
 			cluster.GET("/metrics", r.handler.GetClusterMetrics)
 		}
 	}
+	v1.POST("/kubectl", r.handler.ExecuteKubectl)
+
 }
 
 // StartServer starts the HTTP server in a goroutine
