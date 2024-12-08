@@ -2,12 +2,14 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -198,4 +200,231 @@ func (c *Controller) collectStorageMetrics(ctx context.Context, metrics *Metrics
 	metrics.Storage.StorageClasses = int64(len(storageClasses.Items))
 
 	return nil
+}
+
+//----------------------------------------
+// Metrics per namespace
+//----------------------------------------
+
+// NamespaceMetrics represents metrics for a single namespace
+type NamespaceMetrics struct {
+	Name      string          `json:"name"`
+	Metrics   ResourceMetrics `json:"metrics"`
+	Workloads WorkloadCounts  `json:"workloads"`
+}
+
+// ResourceMetrics represents CPU and Memory metrics
+type ResourceMetrics struct {
+	CPU    ResourceUsage `json:"cpu"`
+	Memory ResourceUsage `json:"memory"`
+}
+
+// ResourceUsage represents resource usage with requests and limits
+type ResourceUsage struct {
+	Request string `json:"request"`
+	Limit   string `json:"limit"`
+}
+
+// WorkloadCounts represents counts of different workload types
+type WorkloadCounts struct {
+	Pods          int64 `json:"pods"`
+	Deployments   int64 `json:"deployments"`
+	DaemonSets    int64 `json:"daemonsets"`
+	StatefulSets  int64 `json:"statefulsets"`
+	RunningPods   int64 `json:"running_pods"`
+	PendingPods   int64 `json:"pending_pods"`
+	FailedPods    int64 `json:"failed_pods"`
+	SucceededPods int64 `json:"succeeded_pods"`
+}
+
+// GetNamespaceMetrics returns metrics for all namespaces or a specific namespace
+func (c *Controller) GetNamespaceMetrics(ctx context.Context, namespaceName string) ([]NamespaceMetrics, error) {
+	var namespaces corev1.NamespaceList
+	var metrics []NamespaceMetrics
+
+	// List namespaces or filter by specific namespace
+	listOpts := []client.ListOption{}
+	if namespaceName != "" {
+		listOpts = append(listOpts, client.InNamespace(namespaceName))
+	}
+
+	if err := c.client.List(ctx, &namespaces, listOpts...); err != nil {
+		return nil, fmt.Errorf("failed to list namespaces: %w", err)
+	}
+
+	// Collect metrics for each namespace
+	for _, ns := range namespaces.Items {
+		nsMetrics, err := c.collectNamespaceMetrics(ctx, ns.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to collect metrics for namespace %s: %w", ns.Name, err)
+		}
+		metrics = append(metrics, nsMetrics)
+	}
+
+	return metrics, nil
+}
+
+func (c *Controller) collectNamespaceMetrics(ctx context.Context, namespace string) (NamespaceMetrics, error) {
+	metrics := NamespaceMetrics{
+		Name: namespace,
+	}
+
+	// Collect workload counts
+	if err := c.collectNamespaceWorkloadCounts(ctx, namespace, &metrics); err != nil {
+		return metrics, err
+	}
+
+	// Collect resource metrics
+	if err := c.collectNamespaceResourceMetrics(ctx, namespace, &metrics); err != nil {
+		return metrics, err
+	}
+
+	return metrics, nil
+}
+
+func (c *Controller) collectNamespaceWorkloadCounts(ctx context.Context, namespace string, metrics *NamespaceMetrics) error {
+	opts := []client.ListOption{client.InNamespace(namespace)}
+
+	// Count pods and their statuses
+	var pods corev1.PodList
+	if err := c.client.List(ctx, &pods, opts...); err != nil {
+		return fmt.Errorf("failed to list pods: %w", err)
+	}
+
+	metrics.Workloads.Pods = int64(len(pods.Items))
+
+	// Count pods by status
+	for _, pod := range pods.Items {
+		switch pod.Status.Phase {
+		case corev1.PodRunning:
+			metrics.Workloads.RunningPods++
+		case corev1.PodPending:
+			metrics.Workloads.PendingPods++
+		case corev1.PodFailed:
+			metrics.Workloads.FailedPods++
+		case corev1.PodSucceeded:
+			metrics.Workloads.SucceededPods++
+		}
+	}
+
+	// Count deployments
+	var deployments appsv1.DeploymentList
+	if err := c.client.List(ctx, &deployments, opts...); err != nil {
+		return fmt.Errorf("failed to list deployments: %w", err)
+	}
+	metrics.Workloads.Deployments = int64(len(deployments.Items))
+
+	// Count daemonsets
+	var daemonsets appsv1.DaemonSetList
+	if err := c.client.List(ctx, &daemonsets, opts...); err != nil {
+		return fmt.Errorf("failed to list daemonsets: %w", err)
+	}
+	metrics.Workloads.DaemonSets = int64(len(daemonsets.Items))
+
+	// Count statefulsets
+	var statefulsets appsv1.StatefulSetList
+	if err := c.client.List(ctx, &statefulsets, opts...); err != nil {
+		return fmt.Errorf("failed to list statefulsets: %w", err)
+	}
+	metrics.Workloads.StatefulSets = int64(len(statefulsets.Items))
+
+	return nil
+}
+
+func (c *Controller) collectNamespaceResourceMetrics(ctx context.Context, namespace string, metrics *NamespaceMetrics) error {
+	var pods corev1.PodList
+	if err := c.client.List(ctx, &pods, client.InNamespace(namespace)); err != nil {
+		return fmt.Errorf("failed to list pods: %w", err)
+	}
+
+	// Initialize resource totals
+	cpuReq := resource.NewQuantity(0, resource.DecimalSI)
+	cpuLim := resource.NewQuantity(0, resource.DecimalSI)
+	memReq := resource.NewQuantity(0, resource.BinarySI)
+	memLim := resource.NewQuantity(0, resource.BinarySI)
+
+	// Calculate total requests and limits
+	for _, pod := range pods.Items {
+		// Only count resource usage for running pods
+		if pod.Status.Phase != corev1.PodRunning {
+			continue
+		}
+
+		for _, container := range pod.Spec.Containers {
+			if cpu := container.Resources.Requests.Cpu(); cpu != nil {
+				cpuReq.Add(*cpu)
+			}
+			if cpu := container.Resources.Limits.Cpu(); cpu != nil {
+				cpuLim.Add(*cpu)
+			}
+			if mem := container.Resources.Requests.Memory(); mem != nil {
+				memReq.Add(*mem)
+			}
+			if mem := container.Resources.Limits.Memory(); mem != nil {
+				memLim.Add(*mem)
+			}
+		}
+	}
+
+	metrics.Metrics = ResourceMetrics{
+		CPU: ResourceUsage{
+			Request: cpuReq.String(),
+			Limit:   cpuLim.String(),
+		},
+		Memory: ResourceUsage{
+			Request: memReq.String(),
+			Limit:   memLim.String(),
+		},
+	}
+
+	return nil
+}
+
+type NamespacedResourceRequest struct {
+	Namespace string `json:"namespace" binding:"required"`
+	Resource  string `json:"resource" binding:"required"`
+}
+
+func (c *Controller) GetNamespacedResources(ctx context.Context, namespace, resource string) (interface{}, error) {
+	opts := []client.ListOption{client.InNamespace(namespace)}
+
+	switch resource {
+	case "pods":
+		var pods corev1.PodList
+		if err := c.client.List(ctx, &pods, opts...); err != nil {
+			return nil, fmt.Errorf("failed to list pods: %w", err)
+		}
+		return pods.Items, nil
+
+	case "deployments":
+		var deployments appsv1.DeploymentList
+		if err := c.client.List(ctx, &deployments, opts...); err != nil {
+			return nil, fmt.Errorf("failed to list deployments: %w", err)
+		}
+		return deployments.Items, nil
+
+	case "daemonsets":
+		var daemonsets appsv1.DaemonSetList
+		if err := c.client.List(ctx, &daemonsets, opts...); err != nil {
+			return nil, fmt.Errorf("failed to list daemonsets: %w", err)
+		}
+		return daemonsets.Items, nil
+
+	case "statefulsets":
+		var statefulsets appsv1.StatefulSetList
+		if err := c.client.List(ctx, &statefulsets, opts...); err != nil {
+			return nil, fmt.Errorf("failed to list statefulsets: %w", err)
+		}
+		return statefulsets.Items, nil
+
+	case "services":
+		var services corev1.ServiceList
+		if err := c.client.List(ctx, &services, opts...); err != nil {
+			return nil, fmt.Errorf("failed to list services: %w", err)
+		}
+		return services.Items, nil
+
+	default:
+		return nil, fmt.Errorf("unsupported resource type: %s", resource)
+	}
 }

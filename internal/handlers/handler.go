@@ -128,3 +128,59 @@ func (h *Handler) ExecuteKubectl(c *gin.Context) {
 
 	c.JSON(http.StatusOK, result)
 }
+
+func (h *Handler) GetNamespaceMetrics(c *gin.Context) {
+	namespace := c.Query("namespace")
+
+	metricsController := metrics.NewController(h.k8sClient, h.scheme)
+	metrics, err := metricsController.GetNamespaceMetrics(c.Request.Context(), namespace)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, metrics)
+}
+
+func (h *Handler) GetNamespaceResources(c *gin.Context) {
+	var req metrics.NamespacedResourceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// Validate the resource type
+	validResources := map[string]bool{
+		"pods":         true,
+		"deployments":  true,
+		"daemonsets":   true,
+		"statefulsets": true,
+		"services":     true,
+	}
+
+	if !validResources[req.Resource] {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid resource type: " + req.Resource,
+		})
+		return
+	}
+
+	metricsController := metrics.NewController(h.k8sClient, h.scheme)
+	resources, err := metricsController.GetNamespacedResources(c.Request.Context(), req.Namespace, req.Resource)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"namespace": req.Namespace,
+		"resource":  req.Resource,
+		"items":     resources,
+	})
+}

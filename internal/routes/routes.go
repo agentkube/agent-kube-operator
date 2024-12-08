@@ -37,7 +37,7 @@ func (r *Router) setupRoutes() {
 	r.router.GET("/health", r.handler.HealthCheck)
 	r.router.GET("/ready", r.handler.ReadyCheck)
 
-	// Requires a  middleware to verify if any write
+	// Requires a  middleware to verify if any write access and check the headers
 
 	// API v1 routes
 	v1 := r.router.Group("/api/v1")
@@ -57,6 +57,8 @@ func (r *Router) setupRoutes() {
 		{
 			cluster.GET("/info", r.handler.GetClusterInfo)
 			cluster.GET("/metrics", r.handler.GetClusterMetrics)
+			cluster.GET("/namespace-metrics", r.handler.GetNamespaceMetrics)
+			cluster.POST("/namespace-resources", r.handler.GetNamespaceResources)
 			// Memory/CPU utilization and total Pods/Deployment/Daemonset/Statefulset running per namespace (return something like { namespace, metrcis: { cpu, memory }, workloads: { pods, deployment, .... }})
 			// Get All namespaces
 			// Get all kubernetes resources for every namespace (resources, namespaces(by default: default ns)) -> returns resources json the items: array[]
