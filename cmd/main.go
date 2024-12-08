@@ -115,7 +115,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	router := routes.NewRouter()
+	router := routes.NewRouter(mgr.GetClient(), mgr.GetScheme())
 	if err := router.StartServer(":8082"); err != nil {
 		setupLog.Error(err, "unable to start HTTP server")
 		os.Exit(1)

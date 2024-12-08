@@ -4,18 +4,26 @@ import (
 	"net/http"
 
 	kubectl "agentkube.com/agent-kube-operator/internal/controllers/kubectl"
+	metrics "agentkube.com/agent-kube-operator/internal/controllers/metrics"
 	"agentkube.com/agent-kube-operator/utils"
 	"github.com/gin-gonic/gin"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // var log = ctrl.Log.WithName("handlers")
 
 type Handler struct {
 	kubectlController *kubectl.Controller
+	k8sClient         client.Client
+	scheme            *runtime.Scheme
 }
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(client client.Client, scheme *runtime.Scheme) *Handler {
+	return &Handler{
+		k8sClient: client,
+		scheme:    scheme,
+	}
 }
 
 // Health and readiness handlers
@@ -84,33 +92,17 @@ func (h *Handler) GetClusterInfo(c *gin.Context) {
 }
 
 func (h *Handler) GetClusterMetrics(c *gin.Context) {
-	// TODO: Implement cluster metrics retrieval
-	// Get total namespaces
-	// Get total Deployments
-	// Get total replicaset
-	// Get total statefulset
-	// Get total pods
-	// Get total nodes
-	// Get total Jobs (Running/Completed)
-	// Get total CronJobs
-	// Get total daemonsets
+	metricsController := metrics.NewController(h.k8sClient, h.scheme)
 
-	// Network
-	// Get total services
-	// Get total endpoing
-	// Get total Ingress
+	metrics, err := metricsController.GetClusterMetrics(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 
-	// Volumes
-	// Get total persistent volume
-	// Get total pvc
-	// Get total storage classes
-
-	c.JSON(http.StatusOK, gin.H{
-		"metrics": map[string]interface{}{
-			"cpu_usage":    "0.5",
-			"memory_usage": "1.2GB",
-		},
-	})
+	c.JSON(http.StatusOK, metrics)
 }
 
 func (h *Handler) ExecuteKubectl(c *gin.Context) {

@@ -4,8 +4,11 @@ import (
 	"net/http"
 
 	"agentkube.com/agent-kube-operator/internal/handlers"
+	cors "github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var log = ctrl.Log.WithName("routes")
@@ -15,18 +18,17 @@ type Router struct {
 	handler *handlers.Handler
 }
 
-func NewRouter() *Router {
+func NewRouter(client client.Client, scheme *runtime.Scheme) *Router {
 	router := gin.New()
 	router.Use(gin.Recovery())
+	router.Use(cors.Default())
 
 	r := &Router{
 		router:  router,
-		handler: handlers.NewHandler(),
+		handler: handlers.NewHandler(client, scheme),
 	}
 
-	// Setup routes
 	r.setupRoutes()
-
 	return r
 }
 
@@ -55,6 +57,9 @@ func (r *Router) setupRoutes() {
 		{
 			cluster.GET("/info", r.handler.GetClusterInfo)
 			cluster.GET("/metrics", r.handler.GetClusterMetrics)
+			// Memory/CPU utilization and total Pods/Deployment/Daemonset/Statefulset running per namespace (return something like { namespace, metrcis: { cpu, memory }, workloads: { pods, deployment, .... }})
+			// Get All namespaces
+			// Get all kubernetes resources for every namespace (resources, namespaces(by default: default ns)) -> returns resources json the items: array[]
 		}
 	}
 	v1.POST("/kubectl", r.handler.ExecuteKubectl)
