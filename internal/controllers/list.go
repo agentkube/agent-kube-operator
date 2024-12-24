@@ -46,39 +46,39 @@ func calculateAge(timestamp metav1.Time) string {
 func (c *ListController) ListResources(ctx context.Context, req ResourceRequest) (interface{}, error) {
 	switch req.Resource {
 	/* Workloads */
-	case "deployments":
+	case "deployments", "deployment", "deploy":
 		return c.listDeployments(ctx, req.Namespaces)
-	case "pods":
+	case "pods", "pod", "po":
 		return c.listPods(ctx, req.Namespaces)
-	case "daemonsets":
+	case "daemonsets", "ds":
 		return c.listDaemonSets(ctx, req.Namespaces)
-	case "statefulsets":
+	case "statefulsets", "sts":
 		return c.listStatefulSets(ctx, req.Namespaces)
-	case "replicasets":
+	case "replicasets", "rs":
 		return c.listReplicaSets(ctx, req.Namespaces)
-	case "replicationcontrollers":
+	case "replicationcontrollers", "replicationcontroller", "rc":
 		return c.listReplicationControllers(ctx, req.Namespaces)
-	case "cronjobs":
+	case "cronjobs", "cronjob":
 		return c.listCronJobs(ctx, req.Namespaces)
-	case "jobs":
+	case "jobs", "job":
 		return c.listJobs(ctx, req.Namespaces)
 
 	/* Config */
-	case "configmaps":
+	case "configmaps", "cm":
 		return c.listConfigMaps(ctx, req.Namespaces)
-	case "secrets":
+	case "secrets", "secret":
 		return c.listSecrets(ctx, req.Namespaces)
-	case "hpa":
+	case "horizontalpodautoscaler", "hpa":
 		return c.listHPA(ctx, req.Namespaces)
-	case "resourcequotas":
+	case "resourcequotas", "quota":
 		return c.listResourceQuotas(ctx, req.Namespaces)
 	case "limitranges":
 		return c.listLimitRanges(ctx, req.Namespaces)
-	// case "vpa":
+	// case "verticalpodautoscaler", "vpa":
 	// 	return c.listVPA(ctx, req.Namespaces)
-	case "pdbs":
+	case "poddisruptionbudget", "pdbs":
 		return c.listPDBs(ctx, req.Namespaces)
-	case "priorityclasses":
+	case "priorityclasses", "priorityclass":
 		return c.listPriorityClasses(ctx)
 	case "runtimeclasses":
 		return c.listRuntimeClasses(ctx)
@@ -86,27 +86,27 @@ func (c *ListController) ListResources(ctx context.Context, req ResourceRequest)
 		return c.listLeases(ctx, req.Namespaces)
 
 	/* Network */
-	case "services":
+	case "services", "svc":
 		return c.listServices(ctx, req.Namespaces)
-	case "endpoints":
+	case "endpoints", "endpoint", "ep":
 		return c.listEndpoints(ctx, req.Namespaces)
-	case "ingresses":
+	case "ingresses", "ingress", "ing":
 		return c.listIngresses(ctx, req.Namespaces)
-	case "ingressclasses":
+	case "ingressclasses", "ingressclass":
 		return c.listIngressClasses(ctx)
-	case "networkpolicies":
+	case "networkpolicies", "networkpolicy", "netpol":
 		return c.listNetworkPolicies(ctx, req.Namespaces)
 	/* Storage */
-	case "pvcs":
+	case "persistentvolumeclaims", "pvcs", "pvc":
 		return c.listPVCs(ctx, req.Namespaces)
-	case "pvs":
+	case "persistentvolume", "pvs", "pv":
 		return c.listPVs(ctx)
-	case "storageclasses":
+	case "storageclasses", "storageclass", "sc":
 		return c.listStorageClasses(ctx)
 
-	case "events":
+	case "events", "ev":
 		return c.listEvents(ctx, req.Namespaces)
-	case "namespaces":
+	case "namespaces", "ns":
 		return c.listNamespaces(ctx)
 	default:
 		return nil, fmt.Errorf("unsupported resource type: %s", req.Resource)
