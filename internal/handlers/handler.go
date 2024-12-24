@@ -39,45 +39,6 @@ func (h *Handler) ReadyCheck(c *gin.Context) {
 	})
 }
 
-// Agent handlers
-func (h *Handler) ListAgents(c *gin.Context) {
-	// TODO: Implement listing agents from the cluster
-	c.JSON(http.StatusOK, gin.H{
-		"agents": []string{},
-	})
-}
-
-func (h *Handler) GetAgent(c *gin.Context) {
-	name := c.Param("name")
-	// TODO: Implement getting specific agent details
-	c.JSON(http.StatusOK, gin.H{
-		"agent": name,
-	})
-}
-
-func (h *Handler) CreateAgent(c *gin.Context) {
-	// TODO: Implement agent creation
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Agent created successfully",
-	})
-}
-
-func (h *Handler) UpdateAgent(c *gin.Context) {
-	name := c.Param("name")
-	// TODO: Implement agent update
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Agent " + name + " updated successfully",
-	})
-}
-
-func (h *Handler) DeleteAgent(c *gin.Context) {
-	name := c.Param("name")
-	// TODO: Implement agent deletion
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Agent " + name + " deleted successfully",
-	})
-}
-
 // Cluster handlers
 func (h *Handler) GetClusterInfo(c *gin.Context) {
 	// TODO: Implement cluster info retrieval
@@ -107,7 +68,7 @@ func (h *Handler) GetClusterMetrics(c *gin.Context) {
 
 func (h *Handler) ExecuteKubectl(c *gin.Context) {
 	var request struct {
-		Args []string `json:"args"`
+		Command []string `json:"command"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -117,8 +78,8 @@ func (h *Handler) ExecuteKubectl(c *gin.Context) {
 		return
 	}
 
-	args := request.Args
-	result, err := h.kubectlController.ExecuteCommand(args...)
+	command := request.Command
+	result, err := h.kubectlController.ExecuteCommand(command...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),

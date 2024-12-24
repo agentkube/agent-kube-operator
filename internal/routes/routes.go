@@ -42,15 +42,6 @@ func (r *Router) setupRoutes() {
 	// API v1 routes
 	v1 := r.router.Group("/api/v1")
 	{
-		// Agents endpoints
-		agents := v1.Group("/agents")
-		{
-			agents.GET("", r.handler.ListAgents)
-			agents.GET("/:name", r.handler.GetAgent)
-			agents.POST("", r.handler.CreateAgent)
-			agents.PUT("/:name", r.handler.UpdateAgent)
-			agents.DELETE("/:name", r.handler.DeleteAgent)
-		}
 
 		// Cluster info endpoints
 		cluster := v1.Group("/cluster")

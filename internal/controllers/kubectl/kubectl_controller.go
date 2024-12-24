@@ -24,9 +24,9 @@ func NewController() *Controller {
 }
 
 // ExecuteCommand executes a kubectl command and returns the result
-func (c *Controller) ExecuteCommand(args ...string) (*CommandResult, error) {
+func (c *Controller) ExecuteCommand(command ...string) (*CommandResult, error) {
 	// Construct the command
-	cmd := exec.Command("kubectl", args...)
+	cmd := exec.Command("kubectl", command...)
 
 	// Create buffers for stdout and stderr
 	var stdout, stderr bytes.Buffer
@@ -38,7 +38,7 @@ func (c *Controller) ExecuteCommand(args ...string) (*CommandResult, error) {
 
 	// Prepare the result
 	result := &CommandResult{
-		Command: fmt.Sprintf("kubectl %s", strings.Join(args, " ")),
+		Command: fmt.Sprintf("kubectl %s", strings.Join(command, " ")),
 		Output:  stdout.String(),
 	}
 
