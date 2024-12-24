@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	controllers "agentkube.com/agent-kube-operator/internal/controllers"
 	kubectl "agentkube.com/agent-kube-operator/internal/controllers/kubectl"
 	metrics "agentkube.com/agent-kube-operator/internal/controllers/metrics"
 	"agentkube.com/agent-kube-operator/utils"
@@ -144,4 +145,25 @@ func (h *Handler) GetNamespaceResources(c *gin.Context) {
 		"resource":  req.Resource,
 		"items":     resources,
 	})
+}
+
+func (h *Handler) ListResources(c *gin.Context) {
+	var req controllers.ResourceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	listController := controllers.NewListController(h.k8sClient, h.scheme)
+	resources, err := listController.ListResources(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, resources)
 }

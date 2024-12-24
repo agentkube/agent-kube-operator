@@ -50,6 +50,7 @@ func (r *Router) setupRoutes() {
 			cluster.GET("/metrics", r.handler.GetClusterMetrics)
 			cluster.GET("/namespace-metrics", r.handler.GetNamespaceMetrics)
 			cluster.POST("/namespace-resources", r.handler.GetNamespaceResources)
+			cluster.POST("/resources", r.handler.ListResources)
 			// Memory/CPU utilization and total Pods/Deployment/Daemonset/Statefulset running per namespace (return something like { namespace, metrcis: { cpu, memory }, workloads: { pods, deployment, .... }})
 			// Get All namespaces
 			// Get all kubernetes resources for every namespace (resources, namespaces(by default: default ns)) -> returns resources json the items: array[]
