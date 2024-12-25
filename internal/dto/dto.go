@@ -258,3 +258,21 @@ type NamespaceInfo struct {
 	Age    string            `json:"age"`
 	Status string            `json:"status"`
 }
+
+type NodeInfo struct {
+	Name       string          `json:"name"`
+	CPU        string          `json:"cpu"`
+	Memory     string          `json:"memory"`
+	Disk       string          `json:"disk"`
+	Taints     []string        `json:"taints"`
+	Roles      []string        `json:"roles"`
+	Version    string          `json:"version"`
+	Age        string          `json:"age"`
+	Conditions []NodeCondition `json:"conditions"`
+}
+
+type NodeCondition struct {
+	Type    string `json:"type"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}

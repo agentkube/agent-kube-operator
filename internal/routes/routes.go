@@ -5,7 +5,7 @@ import (
 
 	"agentkube.com/agent-kube-operator/internal/handlers"
 	cors "github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
+	gin "github.com/gin-gonic/gin"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,6 +51,7 @@ func (r *Router) setupRoutes() {
 			cluster.GET("/namespace-metrics", r.handler.GetNamespaceMetrics)
 			cluster.POST("/namespace-resources", r.handler.GetNamespaceResources)
 			cluster.POST("/resources", r.handler.ListResources)
+			cluster.GET("/nodes", r.handler.GetNodes)
 			// Memory/CPU utilization and total Pods/Deployment/Daemonset/Statefulset running per namespace (return something like { namespace, metrcis: { cpu, memory }, workloads: { pods, deployment, .... }})
 			// Get All namespaces
 			// Get all kubernetes resources for every namespace (resources, namespaces(by default: default ns)) -> returns resources json the items: array[]

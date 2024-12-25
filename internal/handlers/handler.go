@@ -167,3 +167,17 @@ func (h *Handler) ListResources(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resources)
 }
+
+func (h *Handler) GetNodes(c *gin.Context) {
+	nodeController := controllers.NewNodeController(h.k8sClient, h.scheme)
+
+	nodes, err := nodeController.GetNodes(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, nodes)
+}
