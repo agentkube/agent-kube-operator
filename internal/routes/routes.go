@@ -7,6 +7,7 @@ import (
 	cors "github.com/gin-contrib/cors"
 	gin "github.com/gin-gonic/gin"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -18,14 +19,14 @@ type Router struct {
 	handler *handlers.Handler
 }
 
-func NewRouter(client client.Client, scheme *runtime.Scheme) *Router {
+func NewRouter(client client.Client, scheme *runtime.Scheme, config *rest.Config) *Router {
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(cors.Default())
 
 	r := &Router{
 		router:  router,
-		handler: handlers.NewHandler(client, scheme),
+		handler: handlers.NewHandler(client, scheme, config),
 	}
 
 	r.setupRoutes()
@@ -33,17 +34,12 @@ func NewRouter(client client.Client, scheme *runtime.Scheme) *Router {
 }
 
 func (r *Router) setupRoutes() {
-	// Health check endpoints
 	r.router.GET("/health", r.handler.HealthCheck)
 	r.router.GET("/ready", r.handler.ReadyCheck)
-
-	// Requires a  middleware to verify if any write access and check the headers
 
 	// API v1 routes
 	v1 := r.router.Group("/api/v1")
 	{
-
-		// Cluster info endpoints
 		cluster := v1.Group("/cluster")
 		{
 			cluster.GET("/info", r.handler.GetClusterInfo)
@@ -52,16 +48,16 @@ func (r *Router) setupRoutes() {
 			cluster.POST("/namespace-resources", r.handler.GetNamespaceResources)
 			cluster.POST("/resources", r.handler.ListResources)
 			cluster.GET("/nodes", r.handler.GetNodes)
-			// Memory/CPU utilization and total Pods/Deployment/Daemonset/Statefulset running per namespace (return something like { namespace, metrcis: { cpu, memory }, workloads: { pods, deployment, .... }})
-			// Get All namespaces
-			// Get all kubernetes resources for every namespace (resources, namespaces(by default: default ns)) -> returns resources json the items: array[]
 		}
+
+		v1.GET("/raw/*path", r.handler.GetRawResource) // TODO will be removed
+		v1.GET("/namespaces/:namespace/groups/:group/:version/:resource_type/:resource_name", r.handler.GetNamespacedResource)
+		v1.GET("/resources", r.handler.ListAPIResources)
 	}
 	v1.POST("/kubectl", r.handler.ExecuteKubectl)
 
 }
 
-// StartServer starts the HTTP server in a goroutine
 func (r *Router) StartServer(addr string) error {
 	go func() {
 		if err := r.router.Run(addr); err != nil && err != http.ErrServerClosed {

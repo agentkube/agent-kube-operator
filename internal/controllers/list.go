@@ -15,6 +15,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	nodev1 "k8s.io/api/node/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,7 +77,7 @@ func (c *ListController) ListResources(ctx context.Context, req ResourceRequest)
 		return c.listLimitRanges(ctx, req.Namespaces)
 	// case "verticalpodautoscaler", "vpa":
 	// 	return c.listVPA(ctx, req.Namespaces)
-	case "poddisruptionbudget", "pdbs":
+	case "poddisruptionbudget", "pdbs", "pdb":
 		return c.listPDBs(ctx, req.Namespaces)
 	case "priorityclasses", "priorityclass":
 		return c.listPriorityClasses(ctx)
@@ -103,6 +104,18 @@ func (c *ListController) ListResources(ctx context.Context, req ResourceRequest)
 		return c.listPVs(ctx)
 	case "storageclasses", "storageclass", "sc":
 		return c.listStorageClasses(ctx)
+
+	/* Access Control */
+	case "serviceaccounts", "sa":
+		return c.listServiceAccounts(ctx, req.Namespaces)
+	case "clusterroles", "clusterrole", "cr":
+		return c.listClusterRoles(ctx)
+	case "roles", "role":
+		return c.listRoles(ctx, req.Namespaces)
+	case "clusterrolebindings", "clusterrolebinding", "crb":
+		return c.listClusterRoleBindings(ctx)
+	case "rolebindings", "rolebinding", "rb":
+		return c.listRoleBindings(ctx, req.Namespaces)
 
 	case "events", "ev":
 		return c.listEvents(ctx, req.Namespaces)
@@ -706,6 +719,7 @@ func (c *ListController) listIngressClasses(ctx context.Context) ([]dto.IngressC
 		return nil, err
 	}
 
+	// TODO invalid memory address or nil pointer dereference
 	for _, ic := range ingressClasses.Items {
 		info := dto.IngressClassInfo{
 			Name:       ic.Name,
@@ -867,6 +881,119 @@ func (c *ListController) listNamespaces(ctx context.Context) ([]dto.NamespaceInf
 			Status: string(ns.Status.Phase),
 		}
 		result = append(result, info)
+	}
+	return result, nil
+}
+
+func (c *ListController) listServiceAccounts(ctx context.Context, namespaces []string) ([]dto.ServiceAccountInfo, error) {
+	var serviceaccounts corev1.ServiceAccountList
+	var result []dto.ServiceAccountInfo
+
+	for _, ns := range namespaces {
+		if err := c.client.List(ctx, &serviceaccounts, client.InNamespace(ns)); err != nil {
+			return nil, err
+		}
+
+		for _, sa := range serviceaccounts.Items {
+			info := dto.ServiceAccountInfo{
+				Name:      sa.Name,
+				Namespace: sa.Namespace,
+				Age:       calculateAge(sa.CreationTimestamp),
+			}
+			result = append(result, info)
+		}
+	}
+	return result, nil
+}
+
+func (c *ListController) listClusterRoles(ctx context.Context) ([]dto.ClusterRoleInfo, error) {
+	var clusterRoles rbacv1.ClusterRoleList
+	var result []dto.ClusterRoleInfo
+
+	if err := c.client.List(ctx, &clusterRoles); err != nil {
+		return nil, err
+	}
+
+	for _, cr := range clusterRoles.Items {
+		info := dto.ClusterRoleInfo{
+			Name: cr.Name,
+			Age:  calculateAge(cr.CreationTimestamp),
+		}
+		result = append(result, info)
+	}
+	return result, nil
+}
+
+func (c *ListController) listRoles(ctx context.Context, namespaces []string) ([]dto.RoleInfo, error) {
+	var roles rbacv1.RoleList
+	var result []dto.RoleInfo
+
+	for _, ns := range namespaces {
+		if err := c.client.List(ctx, &roles, client.InNamespace(ns)); err != nil {
+			return nil, err
+		}
+
+		for _, role := range roles.Items {
+			info := dto.RoleInfo{
+				Name:      role.Name,
+				Namespace: role.Namespace,
+				Age:       calculateAge(role.CreationTimestamp),
+			}
+			result = append(result, info)
+		}
+	}
+	return result, nil
+}
+
+func (c *ListController) listClusterRoleBindings(ctx context.Context) ([]dto.ClusterRoleBindingInfo, error) {
+	var clusterRoleBindings rbacv1.ClusterRoleBindingList
+	var result []dto.ClusterRoleBindingInfo
+
+	if err := c.client.List(ctx, &clusterRoleBindings); err != nil {
+		return nil, err
+	}
+
+	for _, crb := range clusterRoleBindings.Items {
+		var bindings []string
+		for _, subject := range crb.Subjects {
+			binding := fmt.Sprintf("%s/%s/%s", subject.Kind, subject.Namespace, subject.Name)
+			bindings = append(bindings, binding)
+		}
+
+		info := dto.ClusterRoleBindingInfo{
+			Name:     crb.Name,
+			Bindings: bindings,
+			Age:      calculateAge(crb.CreationTimestamp),
+		}
+		result = append(result, info)
+	}
+	return result, nil
+}
+
+func (c *ListController) listRoleBindings(ctx context.Context, namespaces []string) ([]dto.RoleBindingInfo, error) {
+	var roleBindings rbacv1.RoleBindingList
+	var result []dto.RoleBindingInfo
+
+	for _, ns := range namespaces {
+		if err := c.client.List(ctx, &roleBindings, client.InNamespace(ns)); err != nil {
+			return nil, err
+		}
+
+		for _, rb := range roleBindings.Items {
+			var bindings []string
+			for _, subject := range rb.Subjects {
+				binding := fmt.Sprintf("%s/%s/%s", subject.Kind, subject.Namespace, subject.Name)
+				bindings = append(bindings, binding)
+			}
+
+			info := dto.RoleBindingInfo{
+				Name:      rb.Name,
+				Namespace: rb.Namespace,
+				Bindings:  bindings,
+				Age:       calculateAge(rb.CreationTimestamp),
+			}
+			result = append(result, info)
+		}
 	}
 	return result, nil
 }

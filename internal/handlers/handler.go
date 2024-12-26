@@ -1,14 +1,19 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	controllers "agentkube.com/agent-kube-operator/internal/controllers"
 	kubectl "agentkube.com/agent-kube-operator/internal/controllers/kubectl"
 	metrics "agentkube.com/agent-kube-operator/internal/controllers/metrics"
-	"agentkube.com/agent-kube-operator/utils"
+	raw "agentkube.com/agent-kube-operator/internal/controllers/raw"
+	resources "agentkube.com/agent-kube-operator/internal/controllers/resources"
+	utils "agentkube.com/agent-kube-operator/utils"
 	"github.com/gin-gonic/gin"
+	"gopkg.in/yaml.v2"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -18,12 +23,14 @@ type Handler struct {
 	kubectlController *kubectl.Controller
 	k8sClient         client.Client
 	scheme            *runtime.Scheme
+	restConfig        *rest.Config
 }
 
-func NewHandler(client client.Client, scheme *runtime.Scheme) *Handler {
+func NewHandler(client client.Client, scheme *runtime.Scheme, config *rest.Config) *Handler {
 	return &Handler{
-		k8sClient: client,
-		scheme:    scheme,
+		k8sClient:  client,
+		scheme:     scheme,
+		restConfig: config,
 	}
 }
 
@@ -180,4 +187,125 @@ func (h *Handler) GetNodes(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, nodes)
+}
+
+func (h *Handler) GetRawResource(c *gin.Context) {
+	// Get the path from the URL
+	path := c.Param("path")
+	if path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "path parameter is required",
+		})
+		return
+	}
+
+	// Ensure path starts with /
+	if path[0] != '/' {
+		path = "/" + path
+	}
+
+	fmt.Println(path)
+
+	rawController := raw.NewController(h.k8sClient, h.scheme, h.restConfig)
+	result, err := rawController.GetRawResource(c.Request.Context(), path)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// Check if yaml format is requested
+	if c.Query("output") == "yaml" {
+		yamlData, err := yaml.Marshal(result)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("failed to convert to yaml: %v", err),
+			})
+			return
+		}
+		c.Header("Content-Type", "application/yaml")
+		c.String(http.StatusOK, string(yamlData))
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) ListAPIResources(c *gin.Context) {
+	resourcesController, err := resources.NewController(h.k8sClient, h.scheme, h.restConfig)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("failed to create controller: %v", err),
+		})
+		return
+	}
+
+	resources, err := resourcesController.ListAPIResources(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"resources": resources,
+	})
+}
+
+func (h *Handler) GetNamespacedResource(c *gin.Context) {
+	namespace := c.Param("namespace")
+	group := c.Param("group")
+	version := c.Param("version")
+	resourceType := c.Param("resource_type")
+	resourceName := c.Param("resource_name")
+
+	// Validate required parameters
+	if namespace == "" || version == "" || resourceType == "" || resourceName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "namespace, version, resource_type, and resource_name are required",
+		})
+		return
+	}
+
+	resourcesController, err := resources.NewController(h.k8sClient, h.scheme, h.restConfig)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("failed to create controller: %v", err),
+		})
+		return
+	}
+
+	result, err := resourcesController.GetNamespacedResource(
+		c.Request.Context(),
+		namespace,
+		group,
+		version,
+		resourceType,
+		resourceName,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// Check if yaml format is requested
+	if c.Query("output") == "yaml" {
+		yamlData, err := yaml.Marshal(result)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("failed to convert to yaml: %v", err),
+			})
+			return
+		}
+		c.Header("Content-Type", "application/yaml")
+		c.String(http.StatusOK, string(yamlData))
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }

@@ -276,3 +276,39 @@ type NodeCondition struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 }
+
+/*
+*********************
+/ Access Control ****
+*********************
+*/
+
+type ServiceAccountInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Age       string `json:"age"`
+}
+
+type ClusterRoleInfo struct {
+	Name string `json:"name"`
+	Age  string `json:"age"`
+}
+
+type RoleInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Age       string `json:"age"`
+}
+
+type ClusterRoleBindingInfo struct {
+	Name     string   `json:"name"`
+	Bindings []string `json:"bindings"`
+	Age      string   `json:"age"`
+}
+
+type RoleBindingInfo struct {
+	Name      string   `json:"name"`
+	Namespace string   `json:"namespace"`
+	Bindings  []string `json:"bindings"`
+	Age       string   `json:"age"`
+}

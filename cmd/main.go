@@ -92,7 +92,9 @@ func main() {
 		TLSOpts: tlsOpts,
 	})
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	config := ctrl.GetConfigOrDie()
+
+	mgr, err := ctrl.NewManager(config, ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
 			BindAddress:   metricsAddr,
@@ -115,7 +117,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	router := routes.NewRouter(mgr.GetClient(), mgr.GetScheme())
+	router := routes.NewRouter(mgr.GetClient(), mgr.GetScheme(), config)
 	if err := router.StartServer(":8082"); err != nil {
 		setupLog.Error(err, "unable to start HTTP server")
 		os.Exit(1)
