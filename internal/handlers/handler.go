@@ -249,11 +249,10 @@ func (h *Handler) ListAPIResources(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"resources": resources,
-	})
+	c.JSON(http.StatusOK, resources)
 }
 
+// TODO will be deprecated
 func (h *Handler) GetNamespacedResource(c *gin.Context) {
 	namespace := c.Param("namespace")
 	group := c.Param("group")
@@ -308,4 +307,103 @@ func (h *Handler) GetNamespacedResource(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetK8sResource(c *gin.Context) {
+	namespace := c.Param("namespace")
+	group := c.Param("group")
+	version := c.Param("version")
+	resourceType := c.Param("resource_type")
+	resourceName := c.Param("resource_name")
+
+	if version == "" || resourceType == "" || resourceName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "version, resource_type, and resource_name are required",
+		})
+		return
+	}
+
+	resourcesController, err := resources.NewController(h.k8sClient, h.scheme, h.restConfig)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("failed to create controller: %v", err),
+		})
+		return
+	}
+
+	result, err := resourcesController.GetResource(
+		c.Request.Context(),
+		namespace,
+		group,
+		version,
+		resourceType,
+		resourceName,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if c.Query("output") == "yaml" {
+		yamlData, err := yaml.Marshal(result)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("failed to convert to yaml: %v", err),
+			})
+			return
+		}
+		c.Header("Content-Type", "application/yaml")
+		c.String(http.StatusOK, string(yamlData))
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) ApplyK8sResource(c *gin.Context) {
+	namespace := c.Param("namespace")
+	group := c.Param("group")
+	version := c.Param("version")
+	resourceType := c.Param("resource_type")
+	resourceName := c.Param("resource_name")
+
+	var content map[string]interface{}
+	if err := c.ShouldBindJSON(&content); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("invalid yaml content: %v", err),
+		})
+		return
+	}
+
+	resourcesController, err := resources.NewController(h.k8sClient, h.scheme, h.restConfig)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("failed to create controller: %v", err),
+		})
+		return
+	}
+
+	err = resourcesController.ApplyResource(
+		c.Request.Context(),
+		namespace,
+		group,
+		version,
+		resourceType,
+		resourceName,
+		content,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Resource updated successfully",
+	})
 }

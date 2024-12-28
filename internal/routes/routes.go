@@ -51,8 +51,14 @@ func (r *Router) setupRoutes() {
 		}
 
 		v1.GET("/raw/*path", r.handler.GetRawResource) // TODO will be removed
-		v1.GET("/namespaces/:namespace/groups/:group/:version/:resource_type/:resource_name", r.handler.GetNamespacedResource)
+
+		// v1.GET("/namespaces/:namespace/groups/:group/:version/:resource_type/:resource_name", r.handler.GetNamespacedResource)
+		v1.GET("/resources/:group/:version/:resource_type/:resource_name", r.handler.GetK8sResource)
+		v1.GET("/namespaces/:namespace/resources/:group/:version/:resource_type/:resource_name", r.handler.GetK8sResource)
 		v1.GET("/resources", r.handler.ListAPIResources)
+
+		v1.PUT("/namespaces/:namespace/resources/:group/:version/:resource_type/:resource_name", r.handler.ApplyK8sResource)
+		v1.PUT("/resources/:group/:version/:resource_type/:resource_name", r.handler.ApplyK8sResource)
 	}
 	v1.POST("/kubectl", r.handler.ExecuteKubectl)
 

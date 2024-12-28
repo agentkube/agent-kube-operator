@@ -128,7 +128,8 @@ type VPAInfo struct {
 	Namespace string `json:"namespace"`
 	Age       string `json:"age"`
 	Mode      string `json:"mode"`
-	Status    string `json:"status"`
+	CPU       string `json:"cpu"`
+	Memory    string `json:"memory"`
 }
 
 type PDBInfo struct {
@@ -311,4 +312,16 @@ type RoleBindingInfo struct {
 	Namespace string   `json:"namespace"`
 	Bindings  []string `json:"bindings"`
 	Age       string   `json:"age"`
+}
+
+type MutatingWebhookInfo struct {
+	Name         string `json:"name"`
+	WebhookCount int    `json:"webhooks"`
+	Age          string `json:"age"`
+}
+
+type ValidatingWebhookInfo struct {
+	Name         string `json:"name"`
+	WebhookCount int    `json:"webhooks"`
+	Age          string `json:"age"`
 }

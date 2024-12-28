@@ -7,6 +7,7 @@ import (
 	"time"
 
 	dto "agentkube.com/agent-kube-operator/internal/dto"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
@@ -20,6 +21,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -75,8 +77,8 @@ func (c *ListController) ListResources(ctx context.Context, req ResourceRequest)
 		return c.listResourceQuotas(ctx, req.Namespaces)
 	case "limitranges":
 		return c.listLimitRanges(ctx, req.Namespaces)
-	// case "verticalpodautoscaler", "vpa":
-	// 	return c.listVPA(ctx, req.Namespaces)
+	case "verticalpodautoscaler", "vpa":
+		return c.listVPA(ctx, req.Namespaces)
 	case "poddisruptionbudget", "pdbs", "pdb":
 		return c.listPDBs(ctx, req.Namespaces)
 	case "priorityclasses", "priorityclass":
@@ -85,6 +87,10 @@ func (c *ListController) ListResources(ctx context.Context, req ResourceRequest)
 		return c.listRuntimeClasses(ctx)
 	case "leases":
 		return c.listLeases(ctx, req.Namespaces)
+	case "mutatingwebhookconfigurations", "mutatingwebhook":
+		return c.listMutatingWebhooks(ctx)
+	case "validatingwebhookconfigurations", "validatingwebhook":
+		return c.listValidatingWebhooks(ctx)
 
 	/* Network */
 	case "services", "svc":
@@ -495,26 +501,47 @@ func (c *ListController) listLimitRanges(ctx context.Context, namespaces []strin
 	return result, nil
 }
 
-// func (c *ListController) listVPA(ctx context.Context, namespaces []string) ([]dto.VPAInfo, error) {
-// var vpas autoscalingv1.VerticalPodAutoscalerList
-// var result []dto.VPAInfo
-// for _, ns := range namespaces {
-// 	if err := c.client.List(ctx, &vpas, client.InNamespace(ns)); err != nil {
-// 		return nil, err
-// 	}
-// 	for _, vpa := range vpas.Items {
-// 		info := dto.VPAInfo{
-// 			Name:      vpa.Name,
-// 			Namespace: vpa.Namespace,
-// 			Age:       calculateAge(vpa.CreationTimestamp),
-// 			Mode:      string(vpa.Spec.UpdatePolicy.UpdateMode),
-// 			Status:    string(vpa.Status.Recommendation.Target),
-// 		}
-// 		result = append(result, info)
-// 	}
-// }
-// 	return result, nil
-// }
+func (c *ListController) listVPA(ctx context.Context, namespaces []string) ([]dto.VPAInfo, error) {
+	var vpas autoscalingv1.VerticalPodAutoscalerList
+	var result []dto.VPAInfo
+
+	for _, ns := range namespaces {
+		if err := c.client.List(ctx, &vpas, client.InNamespace(ns)); err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+
+		for _, vpa := range vpas.Items {
+			// Handle UpdateMode safely
+			mode := "Unknown"
+			if vpa.Spec.UpdatePolicy != nil && vpa.Spec.UpdatePolicy.UpdateMode != nil {
+				mode = string(*vpa.Spec.UpdatePolicy.UpdateMode)
+			}
+
+			// Initialize default values
+			cpu := "No recommendation"
+			memory := "No recommendation"
+
+			// Handle Recommendation status safely
+			if vpa.Status.Recommendation != nil && len(vpa.Status.Recommendation.ContainerRecommendations) > 0 {
+				rec := vpa.Status.Recommendation.ContainerRecommendations[0]
+				cpu = rec.Target.Cpu().String()
+				memory = rec.Target.Memory().String()
+			}
+
+			info := dto.VPAInfo{
+				Name:      vpa.Name,
+				Namespace: vpa.Namespace,
+				Age:       calculateAge(vpa.CreationTimestamp),
+				Mode:      mode,
+				CPU:       cpu,
+				Memory:    memory,
+			}
+			result = append(result, info)
+		}
+	}
+	return result, nil
+}
 
 func (c *ListController) listPDBs(ctx context.Context, namespaces []string) ([]dto.PDBInfo, error) {
 	var pdbs policyv1.PodDisruptionBudgetList
@@ -719,14 +746,25 @@ func (c *ListController) listIngressClasses(ctx context.Context) ([]dto.IngressC
 		return nil, err
 	}
 
-	// TODO invalid memory address or nil pointer dereference
 	for _, ic := range ingressClasses.Items {
 		info := dto.IngressClassInfo{
 			Name:       ic.Name,
+			Namespace:  ic.Namespace, // IngressClass is cluster-scoped, so this will be empty
 			Controller: ic.Spec.Controller,
-			APIGroup:   ptrToString(ic.Spec.Parameters.APIGroup),
-			Kind:       ic.Spec.Parameters.Kind,
-			Scope:      ptrToString(ic.Spec.Parameters.Scope),
+			APIGroup:   "",
+			Kind:       "",
+			Scope:      "",
+		}
+
+		// Safely handle Parameters which might be nil
+		if ic.Spec.Parameters != nil {
+			if ic.Spec.Parameters.APIGroup != nil {
+				info.APIGroup = *ic.Spec.Parameters.APIGroup
+			}
+			info.Kind = ic.Spec.Parameters.Kind
+			if ic.Spec.Parameters.Scope != nil {
+				info.Scope = *ic.Spec.Parameters.Scope
+			}
 		}
 
 		result = append(result, info)
@@ -1015,6 +1053,44 @@ func (c *ListController) getPVCPods(pvc *corev1.PersistentVolumeClaim) string {
 	return fmt.Sprintf("%d", count)
 }
 
+func (c *ListController) listMutatingWebhooks(ctx context.Context) ([]dto.MutatingWebhookInfo, error) {
+	var webhooks admissionv1.MutatingWebhookConfigurationList
+	var result []dto.MutatingWebhookInfo
+
+	if err := c.client.List(ctx, &webhooks); err != nil {
+		return nil, err
+	}
+
+	for _, webhook := range webhooks.Items {
+		info := dto.MutatingWebhookInfo{
+			Name:         webhook.Name,
+			WebhookCount: len(webhook.Webhooks),
+			Age:          calculateAge(webhook.CreationTimestamp),
+		}
+		result = append(result, info)
+	}
+	return result, nil
+}
+
+func (c *ListController) listValidatingWebhooks(ctx context.Context) ([]dto.ValidatingWebhookInfo, error) {
+	var webhooks admissionv1.ValidatingWebhookConfigurationList
+	var result []dto.ValidatingWebhookInfo
+
+	if err := c.client.List(ctx, &webhooks); err != nil {
+		return nil, err
+	}
+
+	for _, webhook := range webhooks.Items {
+		info := dto.ValidatingWebhookInfo{
+			Name:         webhook.Name,
+			WebhookCount: len(webhook.Webhooks),
+			Age:          calculateAge(webhook.CreationTimestamp),
+		}
+		result = append(result, info)
+	}
+	return result, nil
+}
+
 // Helper function for service status
 func getServiceStatus(svc *corev1.Service) string {
 	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
@@ -1026,9 +1102,9 @@ func getServiceStatus(svc *corev1.Service) string {
 	return "Active"
 }
 
-func ptrToString(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}
+// func ptrToString(s *string) string {
+// 	if s == nil {
+// 		return ""
+// 	}
+// 	return *s
+// }
