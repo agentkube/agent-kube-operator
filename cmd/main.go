@@ -112,7 +112,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Register cluster with Agentkube
 	if err := mediator.RegisterCluster(); err != nil {
 		setupLog.Error(err, "failed to register cluster")
 		os.Exit(1)
@@ -123,9 +122,6 @@ func main() {
 		setupLog.Error(err, "unable to start HTTP server")
 		os.Exit(1)
 	}
-
-	// Initialize the API controller (Both are below are same NEED To change )
-	// _ = rest.NewController(mgr.GetClient(), mgr.GetScheme())
 
 	if err = (&controllers.AgentDeploymentController{
 		Client: mgr.GetClient(),

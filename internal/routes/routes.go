@@ -3,11 +3,11 @@ package routes
 import (
 	"net/http"
 
-	"agentkube.com/agent-kube-operator/internal/handlers"
+	handlers "agentkube.com/agent-kube-operator/internal/handlers"
 	cors "github.com/gin-contrib/cors"
 	gin "github.com/gin-gonic/gin"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/rest"
+	rest "k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -37,7 +37,6 @@ func (r *Router) setupRoutes() {
 	r.router.GET("/health", r.handler.HealthCheck)
 	r.router.GET("/ready", r.handler.ReadyCheck)
 
-	// API v1 routes
 	v1 := r.router.Group("/api/v1")
 	{
 		cluster := v1.Group("/cluster")
@@ -45,14 +44,10 @@ func (r *Router) setupRoutes() {
 			cluster.GET("/info", r.handler.GetClusterInfo)
 			cluster.GET("/metrics", r.handler.GetClusterMetrics)
 			cluster.GET("/namespace-metrics", r.handler.GetNamespaceMetrics)
-			cluster.POST("/namespace-resources", r.handler.GetNamespaceResources)
 			cluster.POST("/resources", r.handler.ListResources)
 			cluster.GET("/nodes", r.handler.GetNodes)
 		}
 
-		v1.GET("/raw/*path", r.handler.GetRawResource) // TODO will be removed
-
-		// v1.GET("/namespaces/:namespace/groups/:group/:version/:resource_type/:resource_name", r.handler.GetNamespacedResource)
 		v1.GET("/resources/:group/:version/:resource_type/:resource_name", r.handler.GetK8sResource)
 		v1.GET("/namespaces/:namespace/resources/:group/:version/:resource_type/:resource_name", r.handler.GetK8sResource)
 		v1.GET("/resources", r.handler.ListAPIResources)
@@ -60,8 +55,8 @@ func (r *Router) setupRoutes() {
 		v1.PUT("/namespaces/:namespace/resources/:group/:version/:resource_type/:resource_name", r.handler.ApplyK8sResource)
 		v1.PUT("/resources/:group/:version/:resource_type/:resource_name", r.handler.ApplyK8sResource)
 	}
-	v1.POST("/kubectl", r.handler.ExecuteKubectl)
 
+	v1.POST("/kubectl", r.handler.ExecuteKubectl)
 }
 
 func (r *Router) StartServer(addr string) error {

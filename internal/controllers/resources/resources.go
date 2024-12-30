@@ -47,7 +47,6 @@ func NewController(client client.Client, scheme *runtime.Scheme, config *rest.Co
 }
 
 func (c *Controller) GetNamespacedResource(ctx context.Context, namespace, group, version, resourceType, resourceName string) (map[string]interface{}, error) {
-
 	if group == "core" {
 		group = ""
 	}
@@ -73,7 +72,6 @@ func (c *Controller) GetNamespacedResource(ctx context.Context, namespace, group
 		return nil, fmt.Errorf("failed to create REST client: %v", err)
 	}
 
-	// Build the request path
 	var path string
 	if group == "" {
 		path = fmt.Sprintf("/api/%s/namespaces/%s/%s/%s",
@@ -83,7 +81,6 @@ func (c *Controller) GetNamespacedResource(ctx context.Context, namespace, group
 			group, version, namespace, resourceType, resourceName)
 	}
 
-	// Make the request
 	result := restClient.Get().AbsPath(path).Do(ctx)
 	if err := result.Error(); err != nil {
 		return nil, fmt.Errorf("failed to get resource: %v", err)
@@ -107,7 +104,6 @@ func (c *Controller) GetResource(ctx context.Context, namespace, group, version,
 		group = ""
 	}
 
-	// First check if the resource type is namespaced
 	resources, err := c.ListAPIResources(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check resource type: %v", err)

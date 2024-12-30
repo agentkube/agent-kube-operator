@@ -42,7 +42,6 @@ func RegisterCluster() error {
 		return fmt.Errorf("failed to marshal registration data: %v", err)
 	}
 
-	// Create request
 	req, err := http.NewRequest("POST",
 		fmt.Sprintf("%s/api/register-cluster", serverEndpoint),
 		bytes.NewBuffer(jsonData))
@@ -50,11 +49,9 @@ func RegisterCluster() error {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
 
-	// headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", apiKey)
 
-	// request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
