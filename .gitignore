@@ -8,6 +8,7 @@
 bin/*
 Dockerfile.cross
 .env
+.env.production
 # Test binary, built with `go test -c`
 *.test
 

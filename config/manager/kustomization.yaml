@@ -1,8 +1,10 @@
 resources:
 - manager.yaml
+- manager_service.yaml
+- manager_ingress.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: controller
-  newTag: latest
+  newName: agentkube/agentkube-operator
+  newTag: v0.2.0

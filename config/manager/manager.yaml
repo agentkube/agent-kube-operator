@@ -72,6 +72,19 @@ spec:
         - --leader-elect
         image: controller:latest
         name: manager
+        ports:
+        - containerPort: 8082
+          name: http
+          protocol: TCP
+        env:
+          - name: AGENTKUBE_SERVER_ENDPOINT
+            value: "https://api.agentkube.com"
+          - name: AGENTKUBE_API_KEY
+            value: "ak_4464f048c72e0a870ce507e30b3c2329"
+          - name: CLUSTER_NAME
+            value: "local_test_cluster"
+          - name: ACCESS_TYPE
+            value: "READ_WRITE"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

@@ -2,11 +2,14 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"agentkube.com/agent-kube-operator/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -20,15 +23,38 @@ type ClusterRegistration struct {
 	ExternalEndpoint string `json:"externalEndpoint"`
 }
 
-func RegisterCluster() error {
+func getExternalEndpoint(clientset *kubernetes.Clientset) (string, error) {
+	ingress, err := clientset.NetworkingV1().Ingresses("system").Get(context.Background(), "controller-manager-ingress", metav1.GetOptions{})
+	if err != nil {
+		return "http://controller-manager-service.system.svc.cluster.local:8082", nil
+	}
+
+	if len(ingress.Status.LoadBalancer.Ingress) > 0 {
+		if ingress.Status.LoadBalancer.Ingress[0].IP != "" {
+			return fmt.Sprintf("http://%s:8082", ingress.Status.LoadBalancer.Ingress[0].IP), nil
+		}
+		if ingress.Status.LoadBalancer.Ingress[0].Hostname != "" {
+			return fmt.Sprintf("http://%s:8082", ingress.Status.LoadBalancer.Ingress[0].Hostname), nil
+		}
+	}
+
+	// Fall back to cluster-local endpoint if no LoadBalancer is available
+	return "http://controller-manager-service.system.svc.cluster.local:8082", nil
+}
+
+func RegisterCluster(clientset *kubernetes.Clientset) error {
 	serverEndpoint := utils.GetEnviron("AGENTKUBE_SERVER_ENDPOINT")
 	apiKey := utils.GetEnviron("AGENTKUBE_API_KEY")
 	clusterName := utils.GetEnviron("CLUSTER_NAME")
 	accessType := utils.GetEnviron("ACCESS_TYPE")
-	externalEndpoint := utils.GetEnviron("EXTERNAL_ENDPOINT")
 
-	if serverEndpoint == "" || apiKey == "" || clusterName == "" || accessType == "" || externalEndpoint == "" {
+	if serverEndpoint == "" || apiKey == "" || clusterName == "" || accessType == "" {
 		return fmt.Errorf("missing required environment variables")
+	}
+
+	externalEndpoint, err := getExternalEndpoint(clientset)
+	if err != nil {
+		return fmt.Errorf("failed to get external endpoint: %v", err)
 	}
 
 	registration := ClusterRegistration{
@@ -63,6 +89,7 @@ func RegisterCluster() error {
 		return fmt.Errorf("registration failed with status code: %d", resp.StatusCode)
 	}
 
-	setupLog.Info("cluster registered successfully")
+	setupLog.Info("cluster registered successfully",
+		"externalEndpoint", externalEndpoint)
 	return nil
 }

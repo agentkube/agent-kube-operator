@@ -25,12 +25,18 @@ type Handler struct {
 	restConfig        *rest.Config
 }
 
-func NewHandler(client client.Client, scheme *runtime.Scheme, config *rest.Config) *Handler {
-	return &Handler{
-		k8sClient:  client,
-		scheme:     scheme,
-		restConfig: config,
+func NewHandler(client client.Client, scheme *runtime.Scheme, config *rest.Config) (*Handler, error) {
+	kubectlController, err := kubectl.NewController(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kubectl controller: %v", err)
 	}
+
+	return &Handler{
+		kubectlController: kubectlController,
+		k8sClient:         client,
+		scheme:            scheme,
+		restConfig:        config,
+	}, nil
 }
 
 // Health and readiness handlers

@@ -24,6 +24,7 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	"agentkube.com/agent-kube-operator/controllers"
+	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	mediator "agentkube.com/agent-kube-operator/internal/mediator"
@@ -112,12 +113,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := mediator.RegisterCluster(); err != nil {
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		setupLog.Error(err, "unable to create clientset")
+		os.Exit(1)
+	}
+
+	if err := mediator.RegisterCluster(clientset); err != nil {
 		setupLog.Error(err, "failed to register cluster")
 		os.Exit(1)
 	}
 
-	router := routes.NewRouter(mgr.GetClient(), mgr.GetScheme(), config)
+	router, err := routes.NewRouter(mgr.GetClient(), mgr.GetScheme(), config)
+	if err != nil {
+		setupLog.Error(err, "unable to create router")
+		os.Exit(1)
+	}
+
 	if err := router.StartServer(":8082"); err != nil {
 		setupLog.Error(err, "unable to start HTTP server")
 		os.Exit(1)

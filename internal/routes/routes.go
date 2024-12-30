@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"net/http"
 
 	handlers "agentkube.com/agent-kube-operator/internal/handlers"
@@ -19,18 +20,23 @@ type Router struct {
 	handler *handlers.Handler
 }
 
-func NewRouter(client client.Client, scheme *runtime.Scheme, config *rest.Config) *Router {
+func NewRouter(client client.Client, scheme *runtime.Scheme, config *rest.Config) (*Router, error) {
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(cors.Default())
 
+	handler, err := handlers.NewHandler(client, scheme, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create handler: %v", err)
+	}
+
 	r := &Router{
 		router:  router,
-		handler: handlers.NewHandler(client, scheme, config),
+		handler: handler,
 	}
 
 	r.setupRoutes()
-	return r
+	return r, nil
 }
 
 func (r *Router) setupRoutes() {

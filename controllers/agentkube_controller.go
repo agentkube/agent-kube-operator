@@ -18,7 +18,6 @@ type AgentDeploymentController struct {
 
 // Reconcile handles the agent deployment lifecycle
 func (r *AgentDeploymentController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	return ctrl.Result{}, nil
 }
 
