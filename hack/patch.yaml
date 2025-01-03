@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+spec:
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/metrics"
+        kubectl.kubernetes.io/default-container: manager
+    spec:
+      containers:
+      - name: manager
+        env:
+          - name: PROMETHEUS_URL
+            value: "http://prometheus-server:9090"
