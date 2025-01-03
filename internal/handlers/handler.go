@@ -7,6 +7,8 @@ import (
 	controllers "agentkube.com/agent-kube-operator/internal/controllers"
 	kubectl "agentkube.com/agent-kube-operator/internal/controllers/kubectl"
 	metrics "agentkube.com/agent-kube-operator/internal/controllers/metrics"
+	monitor "agentkube.com/agent-kube-operator/internal/controllers/monitor"
+	pod "agentkube.com/agent-kube-operator/internal/controllers/pod"
 	resources "agentkube.com/agent-kube-operator/internal/controllers/resources"
 	utils "agentkube.com/agent-kube-operator/utils"
 	"github.com/gin-gonic/gin"
@@ -270,4 +272,46 @@ func (h *Handler) ApplyK8sResource(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Resource updated successfully",
 	})
+}
+
+func (h *Handler) GetPodMetrics(c *gin.Context) {
+	metricsController, err := pod.NewMetricsController(h.k8sClient, h.scheme, h.restConfig)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("failed to create metrics controller: %v", err),
+		})
+		return
+	}
+
+	metrics, err := metricsController.GetPodMetrics(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, metrics)
+}
+
+func (h *Handler) GetHistoricalPodMetrics(c *gin.Context) {
+	timeRange := c.DefaultQuery("range", "1d")
+
+	metricsController, err := monitor.NewMetricsController(h.k8sClient, h.scheme, h.restConfig)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("failed to create metrics controller: %v", err),
+		})
+		return
+	}
+
+	metrics, err := metricsController.GetHistoricalMetrics(c.Request.Context(), timeRange)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, metrics)
 }

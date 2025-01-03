@@ -43,8 +43,16 @@ func (r *Router) setupRoutes() {
 	r.router.GET("/health", r.handler.HealthCheck)
 	r.router.GET("/ready", r.handler.ReadyCheck)
 
+	// need a prometheus metrics to get all the network details
 	v1 := r.router.Group("/api/v1")
 	{
+
+		metrics := v1.Group("/metrics")
+		{
+			metrics.GET("/pods", r.handler.GetPodMetrics)
+			metrics.GET("/pods/history", r.handler.GetHistoricalPodMetrics)
+		}
+
 		cluster := v1.Group("/cluster")
 		{
 			cluster.GET("/info", r.handler.GetClusterInfo)
