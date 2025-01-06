@@ -28,6 +28,9 @@ type MetricsResponse struct {
 		ReplicaSets   int64 `json:"replicasets"`
 		StatefulSets  int64 `json:"statefulsets"`
 		Pods          int64 `json:"pods"`
+		RunningPods   int64 `json:"running_pods"`
+		PendingPods   int64 `json:"pending_pods"`
+		FailedPods    int64 `json:"failed_pods"`
 		Nodes         int64 `json:"nodes"`
 		Jobs          int64 `json:"jobs"`
 		RunningJobs   int64 `json:"running_jobs"`
@@ -112,6 +115,17 @@ func (c *Controller) collectWorkloadMetrics(ctx context.Context, metrics *Metric
 		return err
 	}
 	metrics.Workloads.Pods = int64(len(pods.Items))
+
+	for _, pod := range pods.Items {
+		switch pod.Status.Phase {
+		case corev1.PodRunning:
+			metrics.Workloads.RunningPods++
+		case corev1.PodPending:
+			metrics.Workloads.PendingPods++
+		case corev1.PodFailed:
+			metrics.Workloads.FailedPods++
+		}
+	}
 
 	// Get nodes
 	var nodes corev1.NodeList
