@@ -51,6 +51,7 @@ func (r *Router) setupRoutes() {
 		{
 			metrics.GET("/pods", r.handler.GetPodMetrics)
 			metrics.GET("/pods/history", r.handler.GetHistoricalPodMetrics)
+			metrics.GET("/pods/comprehensive", r.handler.GetComprehensivePodMetrics)
 		}
 
 		cluster := v1.Group("/cluster")

@@ -102,22 +102,22 @@ func (c *MetricsController) GetHistoricalMetrics(ctx context.Context, timeRange 
 		txQuery := fmt.Sprintf("rate(container_network_transmit_bytes_total{pod=\"%s\", namespace=\"%s\"}[5m])",
 			pod.Name, pod.Namespace)
 
-		cpuData, err := c.queryPrometheus(cpuQuery, startTime, endTime, step)
+		cpuData, err := c.QueryPrometheus(cpuQuery, startTime, endTime, step)
 		if err != nil {
 			return nil, err
 		}
 
-		memData, err := c.queryPrometheus(memQuery, startTime, endTime, step)
+		memData, err := c.QueryPrometheus(memQuery, startTime, endTime, step)
 		if err != nil {
 			return nil, err
 		}
 
-		rxData, err := c.queryPrometheus(rxQuery, startTime, endTime, step)
+		rxData, err := c.QueryPrometheus(rxQuery, startTime, endTime, step)
 		if err != nil {
 			return nil, err
 		}
 
-		txData, err := c.queryPrometheus(txQuery, startTime, endTime, step)
+		txData, err := c.QueryPrometheus(txQuery, startTime, endTime, step)
 		if err != nil {
 			return nil, err
 		}
@@ -170,7 +170,7 @@ type PrometheusResult struct {
 	Values [][]interface{}   `json:"values"`
 }
 
-func (c *MetricsController) queryPrometheus(query string, start, end time.Time, step time.Duration) (*PrometheusResponse, error) {
+func (c *MetricsController) QueryPrometheus(query string, start, end time.Time, step time.Duration) (*PrometheusResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/query_range", c.promURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
