@@ -65,10 +65,15 @@ func (r *Router) setupRoutes() {
 
 		v1.GET("/resources/:group/:version/:resource_type/:resource_name", r.handler.GetK8sResource)
 		v1.GET("/namespaces/:namespace/resources/:group/:version/:resource_type/:resource_name", r.handler.GetK8sResource)
+		// DELETE resource route
+		v1.DELETE("/resources/:group/:version/:resource_type/:resource_name", r.handler.DeleteK8sResource)
+		v1.DELETE("/namespaces/:namespace/resources/:group/:version/:resource_type/:resource_name", r.handler.DeleteK8sResource)
+
 		v1.GET("/resources", r.handler.ListAPIResources)
 
 		v1.PUT("/namespaces/:namespace/resources/:group/:version/:resource_type/:resource_name", r.handler.ApplyK8sResource)
 		v1.PUT("/resources/:group/:version/:resource_type/:resource_name", r.handler.ApplyK8sResource)
+
 	}
 
 	v1.POST("/kubectl", r.handler.ExecuteKubectl)

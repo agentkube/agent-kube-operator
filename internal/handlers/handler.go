@@ -279,6 +279,49 @@ func (h *Handler) ApplyK8sResource(c *gin.Context) {
 	})
 }
 
+func (h *Handler) DeleteK8sResource(c *gin.Context) {
+	namespace := c.Param("namespace")
+	group := c.Param("group")
+	version := c.Param("version")
+	resourceType := c.Param("resource_type")
+	resourceName := c.Param("resource_name")
+
+	if version == "" || resourceType == "" || resourceName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "version, resource_type, and resource_name are required",
+		})
+		return
+	}
+
+	resourcesController, err := resources.NewController(h.k8sClient, h.scheme, h.restConfig)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("failed to create controller: %v", err),
+		})
+		return
+	}
+
+	err = resourcesController.DeleteResource(
+		c.Request.Context(),
+		namespace,
+		group,
+		version,
+		resourceType,
+		resourceName,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("Resource %s/%s deleted successfully", resourceType, resourceName),
+	})
+}
+
 func (h *Handler) GetPodMetrics(c *gin.Context) {
 	metricsController, err := pod.NewMetricsController(h.k8sClient, h.scheme, h.restConfig)
 	if err != nil {

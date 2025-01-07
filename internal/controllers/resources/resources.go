@@ -256,3 +256,35 @@ func (c *Controller) ApplyResource(ctx context.Context, namespace, group, versio
 
 	return nil
 }
+
+func (c *Controller) DeleteResource(
+	ctx context.Context,
+	namespace string,
+	group string,
+	version string,
+	resourceType string,
+	resourceName string,
+) error {
+	// Get the GVK for the resource
+	gvk := schema.GroupVersionKind{
+		Group:   group,
+		Version: version,
+		Kind:    resourceType,
+	}
+
+	// Create a new unstructured object
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(gvk)
+	obj.SetName(resourceName)
+	if namespace != "" {
+		obj.SetNamespace(namespace)
+	}
+
+	// Delete the resource
+	err := c.client.Delete(ctx, obj)
+	if err != nil {
+		return fmt.Errorf("failed to delete resource: %w", err)
+	}
+
+	return nil
+}
