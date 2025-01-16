@@ -5,3 +5,5 @@
 > - _Development will continue in a separate fork or repository, and the entire structure may change for enhanced security and stability._
 > - _Currently, the repository is set to **read-only access** for DocuSign Team/Judges as part of the evaluation process._
 > - _Agentkube team will not be responsible for resolving any vulnerabilities until the review period is over._
+
+Project has been moved to Gitlab
